@@ -295,10 +295,10 @@ func verifyRule(rule Rule, rulenum int, sgmap map[string][]*ec2.SecurityGroup) {
 		}
 	}
 	if permitted {
-		log.Printf("rule %d between %q and %q is permitted",
+		log.Printf("rule %d between %q and %q was found",
 			rulenum, rule.Src, rule.Dst)
 	} else {
-		log.Fatalf("rule %d between %q and %q is NOT permitted",
+		log.Fatalf("FAILURE: rule %d between %q and %q was NOT found",
 			rulenum, rule.Src, rule.Dst)
 	}
 }
