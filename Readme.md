@@ -3,6 +3,7 @@ PineApple
 
 **P**olicy **I**nspector for **NE**twork **A**ccesses, **P**eo**PLE**!
 
+<img src="https://raw.githubusercontent.com/jvehent/pineapple/master/statics/pineapple.png" width=200 >
 ![pineapple](statics/pineapple.png)
 
 This is a prototype to assert the content of security groups between AWS
