@@ -55,4 +55,19 @@ rules:
       dport: 5432
 ```
 
-Julien Vehent - Mozilla - 2016
+Example run:
+```bash
+$ go get github.com/jvehent/pineapple
+
+$ pineapple -c example/invoicer.yaml
+
+2016/08/14 23:37:55 building map of security groups for all 3 components
+2016/08/14 23:37:58 "awseb-e-c-AWSEBLoa-1VXVTQLSGGMG5" matches tags elasticbeanstalk:environment-name:invoicer-api
+2016/08/14 23:37:59 "i-7bdad5fc" matches tags elasticbeanstalk:environment-name:invoicer-api
+2016/08/14 23:38:01 "arn:aws:rds:us-east-1:927034868273:db:invoicer201605211320" matches tags environment-name:invoicer-api
+2016/08/14 23:38:01 rule 0 between "0.0.0.0/0" and "load-balancer" is permitted
+2016/08/14 23:38:01 rule 1 between "load-balancer" and "application" is permitted
+2016/08/14 23:38:01 rule 2 between "application" and "database" is permitted
+```
+
+Julien Vehent - 2016
