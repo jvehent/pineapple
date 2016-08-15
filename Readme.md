@@ -70,4 +70,18 @@ $ pineapple -c example/invoicer.yaml
 2016/08/14 23:38:01 rule 2 between "application" and "database" is permitted
 ```
 
+Author
+------
 Julien Vehent - 2016
+
+Credits
+-------
+PineApple is based on prior work from:
+
+* [Dustin Mitchell](https://github.com/djmitche) who wrote
+  [fwunit](https://github.com/mozilla/build-fwunit) years before I wrote PineApple
+  and is definitely its strongest inspiration
+
+* [Netflix's Security
+  Monkey](https://github.com/Netflix/security_monkey) was a precursor in this
+  field, but is a heavier solution that requires running a server.
