@@ -86,7 +86,7 @@ func main() {
 	// the security groups of each component are stored in
 	// a global map used to check access controls later
 	sgmap := make(map[string][]*ec2.SecurityGroup)
-
+	log.Println("building map of security groups for all", len(conf.Components), "components")
 	for _, comp := range conf.Components {
 		if comp.Type == "" || comp.Name == "" || comp.Tag.Key == "" || comp.Tag.Value == "" {
 			log.Fatalf("invalid configuration for %q component %q. Make sure every component has a type, name tag key and value",
@@ -98,7 +98,7 @@ func main() {
 		case "elb":
 			sgmap[comp.Name], err = getELBSecurityGroups(conf, comp.Tag)
 		case "ec2":
-			//sgmap[comp.Name], err = getEC2SecurityGroups(conf, comp.Tag)
+			sgmap[comp.Name], err = getEC2SecurityGroups(conf, comp.Tag)
 		default:
 			log.Fatalf("component type %q is not supported", comp.Type)
 		}
@@ -107,7 +107,11 @@ func main() {
 				comp.Type, comp.Name, err)
 		}
 	}
-	log.Printf("%+v", sgmap)
+
+	// evaluate rules
+	for i, rule := range conf.Rules {
+		verifyRule(rule, i, sgmap)
+	}
 }
 
 // returns the security groups of an RDS instance identified by a tag
@@ -206,5 +210,95 @@ func getELBSecurityGroups(conf Configuration, tag Tag) ([]*ec2.SecurityGroup, er
 }
 
 func getEC2SecurityGroups(conf Configuration, tag Tag) ([]*ec2.SecurityGroup, error) {
+	awsconf := aws.Config{
+		Region: aws.String(conf.AWS.Region),
+	}
+	if conf.AWS.AccessKey != "" && conf.AWS.SecretKey != "" {
+		awscreds := credentials.NewStaticCredentials(conf.AWS.AccessKey, conf.AWS.SecretKey, "")
+		awsconf.Credentials = awscreds
+	}
+	svc := ec2.New(session.New(), &awsconf)
+	ec2instances, err := svc.DescribeInstances(&ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:" + tag.Key),
+				Values: []*string{
+					aws.String(tag.Value),
+				},
+			},
+		},
+	})
+	if err != nil {
+		log.Printf("failed to obtain EC2 descriptions: %v", err)
+		return nil, err
+	}
+	for _, reservation := range ec2instances.Reservations {
+		for _, instance := range reservation.Instances {
+			log.Printf("%q matches tags %s:%s",
+				*instance.InstanceId, tag.Key, tag.Value)
+			var sgids []*string
+			for _, gid := range instance.SecurityGroups {
+				sgids = append(sgids, gid.GroupId)
+			}
+			ec2sgo, err := svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+				GroupIds: sgids,
+			})
+			return ec2sgo.SecurityGroups, err
+		}
+	}
 	return nil, fmt.Errorf("no instance found matching tags %+v", tag)
+}
+
+func verifyRule(rule Rule, rulenum int, sgmap map[string][]*ec2.SecurityGroup) {
+	var (
+		permitted    bool = false
+		sport, dport bool = true, true
+		src          bool = false
+	)
+	if _, ok := sgmap[rule.Dst]; !ok {
+		return
+	}
+	// verify the destination authorize the origin sg and port
+	for _, sg := range sgmap[rule.Dst] {
+		for _, ipperm := range sg.IpPermissions {
+			if rule.Sport > 0 {
+				sport = false
+			}
+			if rule.Dport > 0 {
+				dport = false
+			}
+			if *ipperm.FromPort == int64(rule.Sport) {
+				sport = true
+			}
+			if *ipperm.ToPort == int64(rule.Dport) {
+				dport = true
+			}
+			// at least one of the src security groups must be authorized
+			// to connect to the destination security group
+			for _, uidgroup := range ipperm.UserIdGroupPairs {
+				for _, sg := range sgmap[rule.Src] {
+					if *uidgroup.GroupId == *sg.GroupId {
+						src = true
+					}
+				}
+			}
+			// if src is an ip, check presence in ipranges
+			for _, iprange := range ipperm.IpRanges {
+				if *iprange.CidrIp == rule.Src {
+					src = true
+				}
+			}
+			if src && sport && dport {
+				permitted = true
+				break
+			}
+		}
+	}
+	if permitted {
+		log.Printf("rule %d between %q and %q is permitted",
+			rulenum, rule.Src, rule.Dst)
+	} else {
+		log.Fatalf("rule %d between %q and %q is NOT permitted",
+			rulenum, rule.Src, rule.Dst)
+	}
 }
