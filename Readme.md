@@ -59,7 +59,7 @@ Example run:
 ```bash
 $ go get github.com/jvehent/pineapple
 
-$ pineapple -c example/invoicer.yaml
+$ pineapple -c examples/invoicer.yaml
 
 2016/08/14 23:37:55 building map of security groups for all 3 components
 2016/08/14 23:37:58 "awseb-e-c-AWSEBLoa-1VXVTQLSGGMG5" matches tags elasticbeanstalk:environment-name:invoicer-api
