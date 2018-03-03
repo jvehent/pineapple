@@ -8,9 +8,11 @@ PineApple
 This is a prototype to assert the content of security groups between AWS
 components. It only supports ELB, EC2 and RDS at the moment. Doesn't do any
 egress inspection and doesn't flag overly open groups. Basically, it's not ready
-for production, I'm just toying with the concept.
+for production, but can be used to prototype infrastructure testing in CI.
 
-It uses tags to locate components in a given region, then pulls the security
+If you're looking for a more mature alternative, consider [Mozilla's pytest-services](https://github.com/mozilla-services/pytest-services).
+
+Pineapple uses tags to locate components in a given region, then pulls the security
 groups of these components and compares their content against rules.
 
 To run it, create a YAML configuration like the one below, and execute the
